@@ -99,6 +99,7 @@ def create_table(event):
     if table_container != None:
         table_container.destroy()
 
+
     table_container, values = None, None
     process_queue = []
 
@@ -110,23 +111,40 @@ def create_table(event):
         case "Round Robin Algorithm":
             ...
 
+table_frame: ctk.CTkFrame = None
 def generate_result():
+    global table_frame
+    if table_frame is not None:
+        table_frame.destroy()
     table_frame = ctk.CTkFrame(result_frame)
     table_frame.pack(padx=20, pady=20)
     tbl_header = ("Process ID", "Waiting Time", "Turn around Time")
 
     for i, header in enumerate(tbl_header):
         frame = ctk.CTkFrame(table_frame, border_color="white", border_width=1, corner_radius=0)
-        frame.grid(column=i, row=0, ipady=2, ipadx=5)
+        frame.grid(column=i, row=0, sticky="nsew")
         text = ctk.CTkLabel(frame, text=header)
         text.pack(pady=2, padx=20)
+        table_frame.columnconfigure(i, weight=1)
     
     for key, val in enumerate(process_queue):
             for i, p in enumerate([val.PID, val.waiting_time, val.turnaround_time]):
                 frame = ctk.CTkFrame(table_frame, border_color="white", border_width=1, corner_radius=0)
-                frame.grid(column=i, row=key + 1, ipady=2, ipadx=5)
+                frame.grid(column=i, row=key + 1, sticky="nsew")
                 text = ctk.CTkLabel(frame, text=p)
                 text.pack(pady=2, padx=40)
+                table_frame.columnconfigure(i, weight=1)
+    start_process_button.configure
+
+
+def generate_GANTT_chart():
+    pqueue = process_queue
+
+    time = 0
+    while pqueue:
+        pqueue.pop
+        time += 1
+    
 
 def process_start():
     global process_queue
@@ -145,9 +163,6 @@ def process_start():
     Process.compareBy = PID
     process_queue.sort()
     generate_result()
-    print(f"| {'Process ID':^20} | {'Arrival Time':^20} | {'Burst Time':^20} |")
-    for p in process_queue:
-        print(f"| {p.PID:^20} | {p.waiting_time:^20} | {p.turnaround_time:^20} |")
 
 num_of_process_slider.bind("<ButtonRelease-1>", create_table)
 start_process_button.configure(command=process_start)

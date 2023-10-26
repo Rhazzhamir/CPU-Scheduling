@@ -44,6 +44,7 @@ class Process:
         elif Process.compareBy == BURST_TIME:
             return self.burst_time > __value.burst_time
 
+
 def sjf_algorithm(memory_queue: list[Process]) -> list[Process]:
     Process.compareBy = ARRIVAL_TIME
     memory_queue.sort(reverse=True)
@@ -84,19 +85,22 @@ def sjf_input_table(input_frame: ctk.CTkFrame | ctk.CTkScrollableFrame, num_of_p
     table_container.pack(anchor=ctk.W, pady=10, padx=10)
 
     PID_frame = ctk.CTkFrame(table_container, border_color="white", border_width=1, corner_radius=0)
-    PID_frame.grid(row=0, column=0)
+    PID_frame.grid(row=0, column=0, sticky="nsew")
     PID_label = ctk.CTkLabel(PID_frame, text="Process ID")
     PID_label.pack(padx=41, pady=2)
 
     arrival_frame = ctk.CTkFrame(table_container, border_color="white", border_width=1, corner_radius=0)
-    arrival_frame.grid(row=0, column=1)
+    arrival_frame.grid(row=0, column=1, sticky="nsew")
     arrival_t_label = ctk.CTkLabel(arrival_frame, text="Arrival Time")
     arrival_t_label.pack(padx=37, pady=2)
 
     burst_frame = ctk.CTkFrame(table_container, border_color="white", border_width=1, corner_radius=0)
-    burst_frame.grid(row=0, column=2)
+    burst_frame.grid(row=0, column=2, sticky="nsew")
     burst_t_label = ctk.CTkLabel(burst_frame, text="Burst Time")
     burst_t_label.pack(padx=38, pady=2)
+    table_container.columnconfigure(0, weight=1)
+    table_container.columnconfigure(1, weight=1)
+    table_container.columnconfigure(2, weight=1)
     
 
     for i in range(1, num_of_process + 1):
@@ -104,7 +108,7 @@ def sjf_input_table(input_frame: ctk.CTkFrame | ctk.CTkScrollableFrame, num_of_p
         arrival_time_var = ctk.StringVar(value='')
         
         frame = ctk.CTkFrame(table_container, border_color="white", border_width=1, corner_radius=0)
-        frame.grid(row=i, column=0)
+        frame.grid(row=i, column=0, sticky="nsew")
         pid_label = ctk.CTkLabel(frame, text=f"P{i:02}")
         pid_label.pack(padx=60, pady=2)
 
@@ -120,7 +124,7 @@ def sjf_input_table(input_frame: ctk.CTkFrame | ctk.CTkScrollableFrame, num_of_p
             validatecommand=(table_container.register(validate_integer_input), '%P'),
             justify="center"
         )
-        arrival_t_input.grid(row=i, column=1, ipady=2)
+        arrival_t_input.grid(row=i, column=1, ipady=2, sticky="nsew")
 
         burst_t_input = ctk.CTkEntry(
             table_container, 
@@ -134,7 +138,10 @@ def sjf_input_table(input_frame: ctk.CTkFrame | ctk.CTkScrollableFrame, num_of_p
             validatecommand=(table_container.register(validate_integer_input), '%P'),
             justify="center"
         )
-        burst_t_input.grid(row=i, column=2, ipady=2)
+        burst_t_input.grid(row=i, column=2, ipady=2, sticky="nsew")
         values[i-1] = (f"P{i:02}", arrival_time_var, burst_time_var)
+        table_container.columnconfigure(0, weight=1)
+        table_container.columnconfigure(1, weight=1)
+        table_container.columnconfigure(2, weight=1)
     
     return {"table": table_container, "values": values}
