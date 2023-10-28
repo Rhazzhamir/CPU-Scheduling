@@ -28,7 +28,7 @@ input_frame = ctk.CTkScrollableFrame(
     border_color=FRAME_STYLE["border color"],
     border_width=FRAME_STYLE["border width"],
 )
-result_frame = ctk.CTkScrollableFrame(
+result_frame = ctk.CTkFrame(
     mainframe,
     border_color=FRAME_STYLE["border color"],
     border_width=FRAME_STYLE["border width"]
@@ -86,10 +86,17 @@ start_process_button.grid(row=0, column=10, pady=10, padx=10)
 # ---------------------------------------------------- #
 # ---------------------- BODY ------------------------ #
 # ---------------------------------------------------- #
-
-table_container: ctk.CTkFrame = None
 values: tuple[int, ctk.IntVar, ctk.IntVar] = None
 process_queue: list[Process] = []
+table_container: tuple[ctk.CTkFrame, tuple] = None
+chart_container = ctk.CTkScrollableFrame(result_frame, fg_color='transparent', orientation='horizontal', border_width=2, border_color='white')
+chart_container.pack(anchor=ctk.NW, expand=True, fill='both', ipadx=5, ipady=5)
+calculated_result = ctk.CTkScrollableFrame(result_frame, fg_color='transparent', border_width=2, border_color='white')
+calculated_result.pack(anchor=ctk.NW, expand=True, fill='both', ipadx=5, ipady=5)
+
+def destroy_children(parent: ctk.CTkFrame | ctk.CTkScrollableFrame):
+    for child in parent.winfo_children():
+        child.destroy()
 
 def create_table(event):
     global table_container
@@ -98,7 +105,6 @@ def create_table(event):
 
     if table_container != None:
         table_container.destroy()
-
 
     table_container, values = None, None
     process_queue = []
@@ -111,13 +117,17 @@ def create_table(event):
         case "Round Robin Algorithm":
             ...
 
-table_frame: ctk.CTkFrame = None
 def generate_result():
-    global table_frame
-    if table_frame is not None:
-        table_frame.destroy()
-    table_frame = ctk.CTkFrame(result_frame)
-    table_frame.pack(padx=20, pady=20)
+    global calculated_result
+    global process_queue
+    destroy_children(calculated_result)
+
+    table_label = ctk.CTkLabel(calculated_result, text='RESULT TABLE:', font=ctk.CTkFont(size=18, weight='bold'))
+    table_label.pack(anchor=ctk.NW, pady=(3, 20))
+
+    table_frame = ctk.CTkFrame(calculated_result)
+    table_frame.pack(anchor=ctk.NW)
+
     tbl_header = ("Process ID", "Waiting Time", "Turn around Time")
 
     for i, header in enumerate(tbl_header):
@@ -136,15 +146,54 @@ def generate_result():
                 table_frame.columnconfigure(i, weight=1)
     start_process_button.configure
 
+    wt_calc_ave = sum([p.waiting_time for p in process_queue]) / len(process_queue)
+    tt_calc_ave = sum([p.turnaround_time for p in process_queue]) / len(process_queue)
+    waiting_time_ave = ctk.CTkLabel(calculated_result, text=f"Average Waiting Time: {wt_calc_ave:.2f}ms", font=ctk.CTkFont(size=14, weight='bold'))
+    waiting_time_ave.pack(anchor=ctk.NW, pady=(3, 0))
+    turnarount_time_ave = ctk.CTkLabel(calculated_result, text=f"Average Turn around Time: {tt_calc_ave:.2f}ms", font=ctk.CTkFont(size=14, weight='bold'))
+    turnarount_time_ave.pack(anchor=ctk.NW, pady=0)
+
 
 def generate_GANTT_chart():
-    pqueue = process_queue
+    global process_queue
+    global chart_container
+    destroy_children(chart_container)
 
-    time = 0
-    while pqueue:
-        pqueue.pop
-        time += 1
+    chart_label = ctk.CTkLabel(chart_container, text='GANTT CHART:', font=ctk.CTkFont(size=18, weight='bold'))
+    colspan = len(process_queue) + 2
+    chart_label.grid(row=0, column=0, columnspan=colspan, pady=20, sticky=ctk.W)
+
+    col = 0
+    WIDTH = 10
+    if process_queue[0].service_time != 0:
+            column_width = WIDTH * process_queue[0].service_time
+            column_width = int(column_width)
+
+            frame = ctk.CTkFrame(chart_container, border_color='white', border_width=1, corner_radius=0)
+            frame.grid(row=1, column=col, ipadx=column_width)
+            time = ctk.CTkLabel(chart_container, text='0', fg_color='transparent')
+            time.grid(row=2, column=col, padx=(0, column_width), ipadx=0, sticky=ctk.W)
+            col += 1
+
+            text = ctk.CTkLabel(frame, text='')
+            text.pack(pady=2, padx=WIDTH)
     
+    for p in process_queue:
+        column_width = WIDTH *(p.time_end - p.service_time)
+        column_width = int(column_width)
+
+        frame = ctk.CTkFrame(chart_container, border_color='white', border_width=1, corner_radius=0)
+        frame.grid(row=1, column=col, ipadx=column_width)
+        time = ctk.CTkLabel(chart_container, text=p.service_time, fg_color='transparent')
+        time.grid(row=2, column=col, padx=(0, column_width), ipadx=0, sticky=ctk.W)
+        col += 1
+
+        text = ctk.CTkLabel(frame, text=p.PID)
+        text.pack(pady=2)
+    
+    time = ctk.CTkLabel(chart_container, text=process_queue[-1].time_end, fg_color='transparent')
+    time.grid(row=2, column=col, padx=(0, column_width), ipadx=0, sticky=ctk.W)
+
 
 def process_start():
     global process_queue
@@ -160,9 +209,11 @@ def process_start():
             return
 
     process_queue = sjf_algorithm(process_queue)
+    generate_GANTT_chart()
     Process.compareBy = PID
     process_queue.sort()
     generate_result()
+
 
 num_of_process_slider.bind("<ButtonRelease-1>", create_table)
 start_process_button.configure(command=process_start)
