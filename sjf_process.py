@@ -73,14 +73,14 @@ def sjf_algorithm(process_queue: list[Process]) -> list[Process]:
             gantt_chart_list.append(top)
 
             while top.remaining_time:
+                time += 1
+                top.remaining_time -= 1
                 while process_queue and time >= process_queue[-1].arrival_time:
                     if idle:
                         idle.time_end = time
                         gantt_chart_list.append(idle)
                         idle = None
                     hp.heappush(memory_queue, process_queue.pop())
-                time += 1
-                top.remaining_time -= 1
             top.time_end = time
             result.append(top)
         else:

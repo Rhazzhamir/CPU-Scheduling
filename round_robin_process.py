@@ -66,8 +66,7 @@ def round_robin_algorithm(process_queue: list[RoundRobinProcess]):
                 idle._time_end.append(time)
                 gantt_chart_list.append(idle)
                 idle = None
-            process = process_queue.pop(0)
-            memory_queue.append(process)
+            memory_queue.append(process_queue.pop(0))
 
         if memory_queue:
             top = memory_queue.pop(0)
@@ -83,8 +82,7 @@ def round_robin_algorithm(process_queue: list[RoundRobinProcess]):
                         idle._time_end.append(time)
                         gantt_chart_list.append(idle)
                         idle = None
-                    process = process_queue.pop(0)
-                    memory_queue.append(process)
+                    memory_queue.append(process_queue.pop(0))
 
             if top.remaining_time > 0:
                 top._time_end.append(time)
