@@ -16,8 +16,8 @@ class RoundRobinProcess:
     @property
     def waiting_time(self) -> float | int:
         result = 0
-        for i, j in zip(self._service_time, [self.arrival_time, *self._time_end]):
-            result += i - j
+        for service_time, arrival_time in zip(self._service_time, [self.arrival_time, *self._time_end]):
+            result += service_time - arrival_time
         return result
 
     @property
