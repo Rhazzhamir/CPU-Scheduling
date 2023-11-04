@@ -1,7 +1,8 @@
 import customtkinter as ctk
 from sjf_process import *
+from round_robin_process import *
 from CTkMessagebox import CTkMessagebox
-
+from input import *
 
 FRAME_STYLE = {"border color": "white", "border width": 1}
 root = ctk.CTk()
@@ -48,7 +49,8 @@ process_var = ctk.StringVar(value=choice[0])
 num_of_process_var = ctk.IntVar(value=3)
 
 slider_label = ctk.CTkLabel(header_frame, text="Number of process: ")
-slider_output = ctk.CTkLabel(header_frame, text=f"{num_of_process_var.get():02}")
+slider_output = ctk.CTkLabel(
+    header_frame, text=f"{num_of_process_var.get(): 02}")
 
 
 def select_algo(choice):
@@ -58,7 +60,7 @@ def select_algo(choice):
 
 def select_number_of_process(value):
     num_of_process_var.set(value)
-    slider_output.configure(text=f"{num_of_process_var.get():02}")
+    slider_output.configure(text=f"{num_of_process_var.get(): 02}")
 
 
 process_select = ctk.CTkComboBox(
@@ -73,7 +75,8 @@ num_of_process_slider = ctk.CTkSlider(
     command=select_number_of_process
 )
 num_of_process_slider.set(num_of_process_var.get())
-start_process_button = ctk.CTkButton(header_frame, text="Start Process", border_color="white")
+start_process_button = ctk.CTkButton(
+    header_frame, text="Start Process", border_color="white")
 
 process_select.grid(row=0, column=0, pady=10, padx=10)
 slider_label.grid(row=0, column=1, pady=10, padx=10)
@@ -82,47 +85,70 @@ slider_output.grid(row=0, column=2, pady=10, padx=10)
 start_process_button.grid(row=0, column=10, pady=10, padx=10)
 
 
-
 # ---------------------------------------------------- #
 # ---------------------- BODY ------------------------ #
 # ---------------------------------------------------- #
+quantum_time_var: ctk.StringVar = None
 values: tuple[int, ctk.IntVar, ctk.IntVar] = None
-process_queue: list[Process] = []
-table_container: tuple[ctk.CTkFrame, tuple] = None
-chart_container = ctk.CTkScrollableFrame(result_frame, fg_color='transparent', orientation='horizontal', border_width=2, border_color='white')
+process_queue: list[Process | RoundRobinProcess] = []
+gantt_chart_list: list[Process | RoundRobinProcess] = None
+
+
+table_container: tuple[ctk.CTkFrame] = None
+chart_container = ctk.CTkScrollableFrame(
+    result_frame,
+    fg_color='transparent',
+    orientation='horizontal',
+    border_width=2,
+    border_color='white'
+)
+calculated_result = ctk.CTkScrollableFrame(
+    result_frame,
+    fg_color='transparent',
+    border_width=2,
+    border_color='white'
+)
+
 chart_container.pack(anchor=ctk.NW, expand=True, fill='both', ipadx=5, ipady=5)
-calculated_result = ctk.CTkScrollableFrame(result_frame, fg_color='transparent', border_width=2, border_color='white')
-calculated_result.pack(anchor=ctk.NW, expand=True, fill='both', ipadx=5, ipady=5)
+calculated_result.pack(anchor=ctk.NW, expand=True,
+                       fill='both', ipadx=5, ipady=5)
+
 
 def destroy_children(parent: ctk.CTkFrame | ctk.CTkScrollableFrame):
     for child in parent.winfo_children():
         child.destroy()
 
+
 def create_table(event):
     global table_container
     global values
-    global process_queue
+    global quantum_time_var
 
     if table_container != None:
         table_container.destroy()
 
     table_container, values = None, None
-    process_queue = []
 
     match process_var.get():
         case "SJF Algorithm":
-            TEMP = sjf_input_table(input_frame, num_of_process_var.get())
-            table_container = TEMP["table"]
-            values = TEMP["values"]
+            table_container, values = input_table(
+                input_frame,
+                num_of_process_var.get()
+            )
         case "Round Robin Algorithm":
-            ...
+            table_container, values, quantum_time_var = round_robin_input(
+                input_frame,
+                num_of_process_var.get()
+            )
+
 
 def generate_result():
     global calculated_result
     global process_queue
     destroy_children(calculated_result)
 
-    table_label = ctk.CTkLabel(calculated_result, text='RESULT TABLE:', font=ctk.CTkFont(size=18, weight='bold'))
+    table_label = ctk.CTkLabel(
+        calculated_result, text='RESULT TABLE:', font=ctk.CTkFont(size=18, weight='bold'))
     table_label.pack(anchor=ctk.NW, pady=(3, 20))
 
     table_frame = ctk.CTkFrame(calculated_result)
@@ -131,87 +157,109 @@ def generate_result():
     tbl_header = ("Process ID", "Waiting Time", "Turn around Time")
 
     for i, header in enumerate(tbl_header):
-        frame = ctk.CTkFrame(table_frame, border_color="white", border_width=1, corner_radius=0)
+        frame = ctk.CTkFrame(table_frame, border_color="white",
+                             border_width=1, corner_radius=0)
         frame.grid(column=i, row=0, sticky="nsew")
         text = ctk.CTkLabel(frame, text=header)
         text.pack(pady=2, padx=20)
         table_frame.columnconfigure(i, weight=1)
-    
+
     for key, val in enumerate(process_queue):
-            for i, p in enumerate([val.PID, val.waiting_time, val.turnaround_time]):
-                frame = ctk.CTkFrame(table_frame, border_color="white", border_width=1, corner_radius=0)
-                frame.grid(column=i, row=key + 1, sticky="nsew")
-                text = ctk.CTkLabel(frame, text=p)
-                text.pack(pady=2, padx=40)
-                table_frame.columnconfigure(i, weight=1)
-    start_process_button.configure
+        for i, p in enumerate([val.PID, val.waiting_time, val.turnaround_time]):
+            frame = ctk.CTkFrame(
+                table_frame, border_color="white", border_width=1, corner_radius=0)
+            frame.grid(column=i, row=key + 1, sticky="nsew")
+            text = ctk.CTkLabel(frame, text=p)
+            text.pack(pady=2, padx=40)
+            table_frame.columnconfigure(i, weight=1)
 
     wt_calc_ave = sum([p.waiting_time for p in process_queue]) / len(process_queue)
     tt_calc_ave = sum([p.turnaround_time for p in process_queue]) / len(process_queue)
-    waiting_time_ave = ctk.CTkLabel(calculated_result, text=f"Average Waiting Time: {wt_calc_ave:.2f}ms", font=ctk.CTkFont(size=14, weight='bold'))
+    waiting_time_ave = ctk.CTkLabel(
+        calculated_result,
+        text=f"Average Waiting Time: {wt_calc_ave: .2f}ms",
+        font=ctk.CTkFont(size=14, weight='bold')
+    )
     waiting_time_ave.pack(anchor=ctk.NW, pady=(3, 0))
-    turnarount_time_ave = ctk.CTkLabel(calculated_result, text=f"Average Turn around Time: {tt_calc_ave:.2f}ms", font=ctk.CTkFont(size=14, weight='bold'))
+    turnarount_time_ave = ctk.CTkLabel(
+        calculated_result,
+        text=f"Average Turn around Time: {tt_calc_ave: .2f}ms",
+        font=ctk.CTkFont(size=14, weight='bold')
+    )
     turnarount_time_ave.pack(anchor=ctk.NW, pady=0)
 
 
 def generate_GANTT_chart():
-    global process_queue
+    global gantt_chart_list
     global chart_container
     destroy_children(chart_container)
-
-    chart_label = ctk.CTkLabel(chart_container, text='GANTT CHART:', font=ctk.CTkFont(size=18, weight='bold'))
-    colspan = len(process_queue) + 2
-    chart_label.grid(row=0, column=0, columnspan=colspan, pady=20, sticky=ctk.W)
+    chart_label = ctk.CTkLabel(
+        chart_container, text='GANTT CHART:', font=ctk.CTkFont(size=18, weight='bold'))
+    colspan = len(gantt_chart_list) + 2
+    chart_label.grid(row=0, column=0, columnspan=colspan,
+                     pady=20, sticky=ctk.W)
 
     col = 0
     WIDTH = 10
-    if process_queue[0].service_time != 0:
-            column_width = WIDTH * process_queue[0].service_time
-            column_width = int(column_width)
 
-            frame = ctk.CTkFrame(chart_container, border_color='white', border_width=1, corner_radius=0)
-            frame.grid(row=1, column=col, ipadx=column_width)
-            time = ctk.CTkLabel(chart_container, text='0', fg_color='transparent')
-            time.grid(row=2, column=col, padx=(0, column_width), ipadx=0, sticky=ctk.W)
-            col += 1
+    for p in gantt_chart_list:
+        service_time = p.service_time
+        time_end = p.time_end
 
-            text = ctk.CTkLabel(frame, text='')
-            text.pack(pady=2, padx=WIDTH)
-    
-    for p in process_queue:
-        column_width = WIDTH *(p.time_end - p.service_time)
+        column_width = WIDTH * (time_end - service_time)
         column_width = int(column_width)
 
-        frame = ctk.CTkFrame(chart_container, border_color='white', border_width=1, corner_radius=0)
+        frame = ctk.CTkFrame(
+            chart_container, border_color='white', border_width=1, corner_radius=0)
         frame.grid(row=1, column=col, ipadx=column_width)
-        time = ctk.CTkLabel(chart_container, text=p.service_time, fg_color='transparent')
-        time.grid(row=2, column=col, padx=(0, column_width), ipadx=0, sticky=ctk.W)
+        time = ctk.CTkLabel(
+            chart_container, text=service_time, fg_color='transparent')
+        time.grid(row=2, column=col, padx=(
+            0, column_width), ipadx=0, sticky=ctk.W)
         col += 1
 
         text = ctk.CTkLabel(frame, text=p.PID)
         text.pack(pady=2)
-    
-    time = ctk.CTkLabel(chart_container, text=process_queue[-1].time_end, fg_color='transparent')
+
+    time_end = gantt_chart_list[-1].time_end
+    if isinstance(gantt_chart_list[-1], RoundRobinProcess):
+        time_end = gantt_chart_list[-1]._time_end[-1]
+    time = ctk.CTkLabel(chart_container, text=time_end, fg_color='transparent')
     time.grid(row=2, column=col, padx=(0, column_width), ipadx=0, sticky=ctk.W)
 
 
 def process_start():
     global process_queue
+    global values
+    global gantt_chart_list
+    process_queue = None
+    process_queue = []
 
     for i in range(len(values)):
         try:
             pid: str = values[i][PID]
             at = int(values[i][ARRIVAL_TIME].get())
             bt = int(values[i][BURST_TIME].get())
-            process_queue.append(Process(pid, at, bt))
+            if process_var.get() == "SJF Algorithm":
+                process_queue.append(Process(pid, at, bt))
+            elif process_var.get() == "Round Robin Algorithm":
+                process_queue.append(RoundRobinProcess(pid, at, bt))
         except ValueError:
             CTkMessagebox(title="Info", message="Please fill the entry!")
             return
 
-    process_queue = sjf_algorithm(process_queue)
+    if process_var.get() == "SJF Algorithm":
+        process_queue, gantt_chart_list = sjf_algorithm(process_queue)
+    elif process_var.get() == "Round Robin Algorithm":
+        try:
+            RoundRobinProcess.quantom_time = int(quantum_time_var.get())
+            process_queue, gantt_chart_list = round_robin_algorithm(
+                process_queue)
+        except ValueError:
+            CTkMessagebox(title="Info", message="Please fill the entry!")
+            return
     generate_GANTT_chart()
-    Process.compareBy = PID
-    process_queue.sort()
+    process_queue.sort(key=lambda x: x.PID)
     generate_result()
 
 
