@@ -3,12 +3,17 @@ from sjf_process import *
 from round_robin_process import *
 from CTkMessagebox import CTkMessagebox
 from input import *
+import os
 
 FRAME_STYLE = {"border color": "white", "border width": 1}
 root = ctk.CTk()
 root.title("CPU Scheduling Algorithms")
 root.resizable = True
 root.geometry("1000x520")
+script_directory = os.path.dirname(os.path.realpath(__file__))
+icon_path = os.path.join(script_directory, "cpu.ico")
+
+root.iconbitmap(icon_path)
 mainframe = ctk.CTkFrame(root)
 
 mainframe.pack(expand=True, fill="both")
