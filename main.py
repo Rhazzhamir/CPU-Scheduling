@@ -44,7 +44,7 @@ result_frame.grid(row=1, column=1, sticky=ctk.NSEW)
 # ---------------------- HEADER ---------------------- #
 # ---------------------------------------------------- #
 
-choice = ["SJF Algorithm", "Round Robin Algorithm"]
+choice = ["Select Process", "SJF Algorithm", "Round Robin Algorithm"]
 process_var = ctk.StringVar(value=choice[0])
 num_of_process_var = ctk.IntVar(value=3)
 
@@ -90,8 +90,8 @@ start_process_button.grid(row=0, column=10, pady=10, padx=10)
 # ---------------------------------------------------- #
 quantum_time_var: ctk.StringVar = None
 values: tuple[int, ctk.IntVar, ctk.IntVar] = None
-process_queue: list[Process | RoundRobinProcess] = []
-gantt_chart_list: list[Process | RoundRobinProcess] = None
+process_queue: list[NonPreempProcess | PreempProcess] = []
+gantt_chart_list: list[NonPreempProcess | PreempProcess] = None
 
 
 table_container: tuple[ctk.CTkFrame] = None
@@ -140,6 +140,9 @@ def create_table(event):
                 input_frame,
                 num_of_process_var.get()
             )
+        case _:
+            table_container = ctk.CTkLabel(input_frame, text="Select Process", font=ctk.CTkFont(size=18, weight="bold"))
+            table_container.pack()
 
 
 def generate_result():
@@ -173,8 +176,10 @@ def generate_result():
             text.pack(pady=2, padx=40)
             table_frame.columnconfigure(i, weight=1)
 
-    wt_calc_ave = sum([p.waiting_time for p in process_queue]) / len(process_queue)
-    tt_calc_ave = sum([p.turnaround_time for p in process_queue]) / len(process_queue)
+    wt_calc_ave = sum([p.waiting_time for p in process_queue]
+                      ) / len(process_queue)
+    tt_calc_ave = sum(
+        [p.turnaround_time for p in process_queue]) / len(process_queue)
     waiting_time_ave = ctk.CTkLabel(
         calculated_result,
         text=f"Average Waiting Time: {wt_calc_ave: .2f}ms",
@@ -222,7 +227,7 @@ def generate_GANTT_chart():
         text.pack(pady=2)
 
     time_end = gantt_chart_list[-1].time_end
-    if isinstance(gantt_chart_list[-1], RoundRobinProcess):
+    if isinstance(gantt_chart_list[-1], PreempProcess):
         time_end = gantt_chart_list[-1]._time_end[-1]
     time = ctk.CTkLabel(chart_container, text=time_end, fg_color='transparent')
     time.grid(row=2, column=col, padx=(0, column_width), ipadx=0, sticky=ctk.W)
@@ -235,15 +240,19 @@ def process_start():
     process_queue = None
     process_queue = []
 
+    if process_var.get() == choice[0]:
+        CTkMessagebox(title="info", message="Please Select Process!")
+        return
+
     for i in range(len(values)):
         try:
             pid: str = values[i][PID]
             at = int(values[i][ARRIVAL_TIME].get())
             bt = int(values[i][BURST_TIME].get())
             if process_var.get() == "SJF Algorithm":
-                process_queue.append(Process(pid, at, bt))
+                process_queue.append(NonPreempProcess(pid, at, bt))
             elif process_var.get() == "Round Robin Algorithm":
-                process_queue.append(RoundRobinProcess(pid, at, bt))
+                process_queue.append(PreempProcess(pid, at, bt))
         except ValueError:
             CTkMessagebox(title="Info", message="Please fill the entry!")
             return
@@ -252,7 +261,7 @@ def process_start():
         process_queue, gantt_chart_list = sjf_algorithm(process_queue)
     elif process_var.get() == "Round Robin Algorithm":
         try:
-            RoundRobinProcess.quantom_time = int(quantum_time_var.get())
+            PreempProcess.quantom_time = int(quantum_time_var.get())
             process_queue, gantt_chart_list = round_robin_algorithm(
                 process_queue)
         except ValueError:

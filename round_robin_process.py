@@ -1,4 +1,4 @@
-class RoundRobinProcess:
+class PreempProcess:
     quantom_time = 0
 
     def __init__(self, pid, arrival_t, burst_t) -> None:
@@ -52,11 +52,11 @@ class RoundRobinProcess:
         return f"{self.__PID}"
 
 
-def round_robin_algorithm(process_queue: list[RoundRobinProcess]):
+def round_robin_algorithm(process_queue: list[PreempProcess]):
     process_queue.sort(key=lambda x: x.arrival_time)
-    gantt_chart_list: list[RoundRobinProcess] = []
-    result: list[RoundRobinProcess] = []
-    memory_queue: list[RoundRobinProcess] = []
+    gantt_chart_list: list[PreempProcess] = []
+    result: list[PreempProcess] = []
+    memory_queue: list[PreempProcess] = []
 
     time = 0
     idle = None
@@ -71,17 +71,14 @@ def round_robin_algorithm(process_queue: list[RoundRobinProcess]):
         if memory_queue:
             top = memory_queue.pop(0)
             top._service_time.append(time)
-            remaining_quantum = min(RoundRobinProcess.quantom_time, top.remaining_time)
+            remaining_quantum = min(
+                PreempProcess.quantom_time, top.remaining_time)
             gantt_chart_list.append(top)
 
             for _ in range(remaining_quantum):
                 top.remaining_time -= 1
                 time += 1
                 while process_queue and time >= process_queue[0].arrival_time:
-                    if idle:
-                        idle._time_end.append(time)
-                        gantt_chart_list.append(idle)
-                        idle = None
                     memory_queue.append(process_queue.pop(0))
 
             if top.remaining_time > 0:
@@ -92,7 +89,7 @@ def round_robin_algorithm(process_queue: list[RoundRobinProcess]):
                 result.append(top)
         else:
             if not idle:
-                idle = RoundRobinProcess(" ", 0, 0)
+                idle = PreempProcess(" ", 0, 0)
                 idle._service_time.append(time)
             time += 1
 
